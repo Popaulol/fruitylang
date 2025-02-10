@@ -1,0 +1,131 @@
+@@grammar::fruitylang
+
+start
+    =
+    expression $;
+
+expression
+    =
+    | addition
+    | subtraction
+    | term
+    ;
+
+addition::Add
+    =
+    left:term op:'+' ~ right:expression
+    ;
+
+subtraction::Subtract
+    =
+    left:term op:'-' ~ right:expression
+    ;
+
+term
+    =
+    | multiplication
+    | division
+    | factor
+    ;
+
+multiplication::Multiply
+    =
+    left:factor op:'*' ~ right:term
+    ;
+
+
+division::Divide
+    =
+    left:factor '/' ~ right:term
+    ;
+
+
+factor
+    =
+    | inversion
+    | unary
+    ;
+
+inversion::Invert
+    =
+    '-' ~ value:factor
+    ;
+
+unary
+    =
+    | exponentiation
+    | power
+    ;
+
+exponentiation::Exponentiate
+    =
+    base:power ('*' '*') ~ exponent:unary
+    ;
+
+power
+    =
+    | subexpression
+    #| call
+    | access
+    | unit_number
+    ;
+
+
+subexpression::Subexpression
+    =
+    '(' ~ expr:expression ')'
+    ;
+
+
+#call::Call
+#    =
+#    function:identifier '(' ~ args:[call_argument_list] ')'
+#    ;
+
+#call_argument_list
+#    =
+#    @:expression {',' @:expression}*
+#    ;
+
+#definition_argument_list::Definition_argument_list
+#    =
+#    first:identifier rest:{',' identifier}*
+#    ;
+
+access::Access
+    = name:identifier
+    ;
+
+unit_number::Unit_number
+    =
+    | value:NUMBER units:units
+    | value:NUMBER
+    ;
+
+units::Units
+    =
+    units:{UNIT}
+    ;
+
+UNIT::Unit
+    =
+    name:UNIT_NAME ['^' number:NUMBER]
+    ;
+
+UNIT_NAME::Unit_name
+    = name: (
+    | 's' | 'm' | 'kg' | 'A' | 'K' | 'mol' | 'cd'
+    | 'Hz' | 'rad' | 'sr' | 'N' | 'Pa' | 'J' | 'W' | 'C' | 'V' | 'F' | 'O' | 'S' | 'Wb' | 'T' | 'H' | 'lm' | 'lx' | 'Bq' | 'Gy' | 'Sv' | 'kat'
+    );
+
+
+identifier::Ident
+    =
+    first:(/[a-z]/ | /[A-Z]/ | '_' | '$' ) rest:{/[a-z]/ | /[A-Z]/ | '_' | '$' | /[0-9]/}*
+    ;
+
+
+NUMBER::Number
+    =
+    /[-+]?[0-9]*\.?[0-9]*/
+    ;
