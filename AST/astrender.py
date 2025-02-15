@@ -80,11 +80,17 @@ class ASTRender(ASTWalker[str]):
     def walk_unit_number[A, K](self, node: UnitNumber, *args: A, **kwargs: K) -> str:
         current_id = self.get_id()
         number = node.number.walk(self)
+
+        self.file.write(f'    {current_id}[label="unit_number"]\n')
+        self.file.write(f'    {current_id} -> {number}\n')
+
+
         if node.unit:
             unit = node.unit.walk(self)
-            self.file.write(f'    {current_id}[label="{number} {unit}"]\n')
-        else:
-            self.file.write(f'    {current_id}[label="{number}"]\n')
+            self.file.write(f'    {current_id} -> {unit}\n')
+
+
+
         return current_id
 
     def walk_number[A, K](self, node: Number, *args: A, **kwargs: K) -> str:
