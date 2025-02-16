@@ -1,3 +1,4 @@
+from abc import ABC
 from typing import TextIO
 
 from AST.ast import (
@@ -11,9 +12,10 @@ from AST.ast import (
     Mul,
     Number,
     Sub,
-    UnitNumber,
+    UnitNumber, Call, Program, Block, Function, Type,
 )
 from AST.astwalker import ASTWalker
+from unit import Unit
 
 
 def render_ast(ast: ASTNode, filename: str) -> None:
@@ -25,6 +27,67 @@ def render_ast(ast: ASTNode, filename: str) -> None:
 
 
 class ASTRender(ASTWalker[str]):
+    def walk_type[A, K](self, node: Type, *args: A, **kwargs: K) -> str:
+        current_id = self.get_id()
+        self.file.write(f'    {current_id} [label="Type"]\n')
+        name = node.name.walk(self)
+        self.file.write(f'    {current_id} -> {name} [label="name"]\n')
+
+        if node.units:
+            unit = node.units.walk(self)
+            self.file.write(f'    {current_id} -> {unit} [label="unit"]\n')
+
+        return current_id
+
+    def walk_function[A, K](self, node: Function, *args: A, **kwargs: K) -> str:
+        current_id = self.get_id()
+        self.file.write(f'    {current_id} [label="Function"]\n')
+        name = node.name.walk(self)
+        self.file.write(f'    {current_id} -> {name} [label="name"]\n')
+        for n, argument in enumerate(node.arguments):
+            argument_id = argument[0].walk(self)
+            type_id = argument[1].walk(self)
+            self.file.write(f'    {current_id} -> {{{argument_id} {type_id}}} [label="arg {n}"]\n')
+
+        return_type = node.return_type.walk(self)
+        self.file.write(f'    {current_id} -> {return_type} [label="return"]\n')
+
+        body = node.body.walk(self)
+        self.file.write(f'    {current_id} -> {body} [label="body"]\n')
+
+        return current_id
+
+    def walk_program[A, K](self, node: Program, *args: A, **kwargs: K) -> str:
+        current_id = self.get_id()
+        self.file.write(f'    {current_id} [label="Program"]\n')
+        for n, definition in enumerate(node.definitions):
+            self.file.write(f'    {current_id} -> {definition.walk(self)} [label="{n}"]\n')
+
+        return current_id
+
+    def walk_block[A, K](self, node: Block, *args: A, **kwargs: K) -> str:
+        current_id = self.get_id()
+        self.file.write(f'    {current_id} [label="Block"]\n')
+        for n, expression in enumerate(node.expressions):
+            self.file.write(f'    {current_id} -> {expression.walk(self)} [label="{n}"]\n')
+
+        return_expression = node.return_expression.walk(self)
+        self.file.write(f'    {current_id} -> {return_expression}[label="return_expression"]\n')
+
+        return current_id
+
+
+    def walk_call[A, K](self, node: Call, *args: A, **kwargs: K) -> str:
+        current_id = self.get_id()
+        self.file.write(f'    {current_id}[label="call"]\n')
+        callee = node.callee.walk(self)
+        self.file.write(f'    {current_id} -> {callee}[label="callee"]\n')
+        for n, argument in enumerate(node.arguments):
+            argument = argument.walk(self)
+            self.file.write(f'    {current_id} -> {argument}[label="argument {n}"]\n')
+
+        return current_id
+
     def __init__(self, file: TextIO) -> None:
         self.id_tracker = 0
         self.file = file
@@ -85,11 +148,9 @@ class ASTRender(ASTWalker[str]):
         self.file.write(f'    {current_id} -> {number}\n')
 
 
-        if node.unit:
+        if node.unit and node.unit.unit != Unit():
             unit = node.unit.walk(self)
             self.file.write(f'    {current_id} -> {unit}\n')
-
-
 
         return current_id
 

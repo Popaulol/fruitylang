@@ -14,8 +14,8 @@ if typing.TYPE_CHECKING:
         Mul,
         Number,
         Sub,
-        UnitNumber,
-    )
+        UnitNumber, Call, Block, Program, Function, Type,
+)
 
 
 class ASTWalker[T](ABC):
@@ -57,4 +57,24 @@ class ASTWalker[T](ABC):
 
     @abstractmethod
     def walk_ast_unit[A, K](self, node: ASTUnit, *args: A, **kwargs: K) -> T:
+        pass
+
+    @abstractmethod
+    def walk_call[A, K](self, node: Call, *args: A, **kwargs: K) -> T:
+        pass
+
+    @abstractmethod
+    def walk_program[A, K](self, node: Program, *args: A, **kwargs: K) -> T:
+        pass
+
+    @abstractmethod
+    def walk_block[A, K](self, node: Block, *args: A, **kwargs: K) -> T:
+        pass
+
+    @abstractmethod
+    def walk_function[A, K](self, node: Function, *args: A, **kwargs: K) -> T:
+        pass
+
+    @abstractmethod
+    def walk_type[A, K](self, node: Type, *args: A, **kwargs: K) -> T:
         pass

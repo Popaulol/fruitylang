@@ -16,7 +16,11 @@ class ASTNode(ABC):
 
 
 @dataclass
-class Expr(ASTNode, ABC):
+class Definition(ASTNode, ABC):
+    pass
+
+@dataclass
+class Expr(Definition, ABC):
     pass
 
 
@@ -104,3 +108,47 @@ class ASTUnit(Expr):
 
     def walk[T, A, K](self, walker: ASTWalker[T], *args: A, **kwargs: K) -> T:
         return walker.walk_ast_unit(self, *args, **kwargs)
+
+@dataclass
+class Call(Expr):
+    callee: Expr
+    arguments: list[Expr]
+
+    def walk[T, A, K](self, walker: ASTWalker[T], *args: A, **kwargs: K) -> T:
+        return walker.walk_call(self, *args, **kwargs)
+
+
+@dataclass
+class Program(ASTNode):
+    definitions: list[Definition]
+
+
+    def walk[T, A, K](self, walker: ASTWalker[T], *args: A, **kwargs: K) -> T:
+        return walker.walk_program(self, *args, **kwargs)
+
+@dataclass
+class Block(Expr):
+    expressions: list[Expr]
+    return_expression: Expr | None
+
+    def walk[T, A, K](self, walker: ASTWalker[T], *args: A, **kwargs: K) -> T:
+        return walker.walk_block(self, *args, **kwargs)
+
+@dataclass
+class Function(Definition):
+    name: Identifier
+    arguments: list[tuple[Expr, Type]]
+    return_type: Type
+    body: Expr
+
+    def walk[T, A, K](self, walker: ASTWalker[T], *args: A, **kwargs: K) -> T:
+        return walker.walk_function(self, *args, **kwargs)
+
+
+@dataclass
+class Type(ASTNode):
+    name: Identifier
+    units: ASTUnit | None
+
+    def walk[T, A, K](self, walker: ASTWalker[T], *args: A, **kwargs: K) -> T:
+        return walker.walk_type(self, *args, **kwargs)

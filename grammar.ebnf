@@ -1,15 +1,32 @@
 @@grammar::fruitylang
 
-start
+@@keyword :: fn
+
+start = program;
+
+program::Program
     =
-    expression $;
+    definitions:{definition}* $;
+
+definition
+    =
+    | @:expression ';'
+    | @:function {';'}
+    ;
 
 expression
     =
+    | block
     | addition
     | subtraction
     | term
     ;
+
+function::Function
+    = 'fn' name:identifier '(' args:(','.{identifier ':' type}) [','] ')' ['->' return_type: type] ':' body:expression;
+
+block::Block
+    = '{' exprs:{expression ";"} return_expr:[expression] '}';
 
 addition::Add
     =
@@ -65,7 +82,7 @@ exponentiation::Exponentiate
 power
     =
     | subexpression
-    #| call
+    | call
     | access
     | unit_number
     ;
@@ -77,23 +94,31 @@ subexpression::Subexpression
     ;
 
 
-#call::Call
-#    =
-#    function:identifier '(' ~ args:[call_argument_list] ')'
-#    ;
+call::Call
+    =
+    callee:expression '(' ~ args:[call_argument_list] ')'
+    ;
 
-#call_argument_list
-#    =
-#    @:expression {',' @:expression}*
-#    ;
+call_argument_list
+    =
+    @:expression {',' @:expression}*
+    ;
 
-#definition_argument_list::Definition_argument_list
-#    =
-#    first:identifier rest:{',' identifier}*
-#    ;
+definition_argument_list::Definition_argument_list
+    =
+    first:identifier rest:{',' identifier}*
+    ;
 
 access::Access
     = name:identifier
+    ;
+
+type::Type
+    =
+    | type:"int" units:units
+    | type:"float" units:units
+    | type:"str" units:{}
+#    | type:identifier units:{}
     ;
 
 unit_number::Unit_number
@@ -118,14 +143,12 @@ UNIT_NAME::Unit_name
     | 'Hz' | 'rad' | 'sr' | 'N' | 'Pa' | 'J' | 'W' | 'C' | 'V' | 'F' | 'O' | 'S' | 'Wb' | 'T' | 'H' | 'lm' | 'lx' | 'Bq' | 'Gy' | 'Sv' | 'kat'
     );
 
+identifier::Ident = identifier_internal;
 
-identifier::Ident
-    =
-    first:(/[a-z]/ | /[A-Z]/ | '_' | '$' ) rest:{/[a-z]/ | /[A-Z]/ | '_' | '$' | /[0-9]/}*
-    ;
-
+@name
+identifier_internal = /[_a-zA-Z][_a-zA-Z0-9]*/;
 
 NUMBER::Number
     =
-    /[-+]?[0-9]*\.?[0-9]*/
+    /-?[0-9]+\.?[0-9]*/
     ;

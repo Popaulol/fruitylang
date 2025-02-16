@@ -1,3 +1,8 @@
+import sys
+import traceback
+from _ast import Return
+from pprint import pprint
+
 from tatsu.objectmodel import Node
 from tatsu.walkers import NodeWalker
 
@@ -12,7 +17,7 @@ from AST.ast import (
     Mul,
     Number,
     Sub,
-    UnitNumber,
+    UnitNumber, Call, Program, Definition, Block, Function, Type,
 )
 from unit import UNIT_MAP, Unit
 
@@ -24,6 +29,8 @@ def create_ast(parse_result: str) -> ASTNode:
 class ASTGenerator(NodeWalker):  # type: ignore
     def walk_object(self, node: Node) -> ASTNode:
         # pprint(node, width=20, indent=4)
+        traceback.print_stack()
+        print("UNPARSED NODE: " + str(type(node)) + " ", file=sys.stderr)
         return Identifier("UNPARSED NODE: " + str(type(node)))
 
     def walk_Add(self, node: Node) -> ASTNode:
@@ -49,11 +56,16 @@ class ASTGenerator(NodeWalker):  # type: ignore
         return UnitNumber(self.walk(node.value), self.walk(node.units))
 
     def walk_Number(self, node: Node) -> ASTNode:
-        # pprint(node, width=20, indent=4)
-        if "." in node.ast:
-            return Number(float(node.ast))
-        else:
-            return Number(int(node.ast))
+        #pprint(node, width=20, indent=4)
+        #print(node)
+        try:
+            if "." in node.ast:
+                return Number(float(node.ast))
+            else:
+
+                    return Number(int(node.ast))
+        except ValueError as e:
+            return Identifier(f"NUMBER Failed: {e}")
 
     def walk_units(self, node: Node) -> ASTNode:
         combined_unit = Unit()
@@ -69,3 +81,62 @@ class ASTGenerator(NodeWalker):  # type: ignore
 
     def walk_Subexpression(self, node: Node) -> ASTNode:
         return self.walk(node.expr)  # type: ignore
+
+    def walk_Call(self, node: Node) -> ASTNode:
+        callee = self.walk(node.callee)
+        arguments = self.walk(node.args)
+
+        if not isinstance(arguments, list):
+            arguments = [arguments]
+
+        return Call(callee, arguments)
+
+    def walk_Access(self, node: Node) -> ASTNode:
+        return self.walk(node.name)
+
+    def walk_Ident(self, node: Node) -> ASTNode:
+        return Identifier(str(node.ast))
+
+    def walk_Program(self, node: Node) -> ASTNode:
+        definitions = []
+        for definition in node.definitions:
+            #print(definition)
+            definitions.append(self.walk(definition))
+
+        return Program(definitions)
+
+    def walk_Block(self, node: Node) -> ASTNode:
+        expressions = []
+
+        for expression in node.exprs:
+            #print(expression)
+            if not expression:
+                continue
+            expressions.append(self.walk(expression[0]))
+
+        return_expression = self.walk(node.return_expr)
+
+        return Block(expressions, return_expression)
+
+    def walk_Function(self, node: Node) -> ASTNode:
+
+        #print(node)
+        name = self.walk(node.name)
+        args = []
+        for arg in node.args:
+            args.append((
+                self.walk(arg[0]),
+                self.walk(arg[2])
+            ))
+
+        return_type = self.walk(node.return_type)
+
+        body = self.walk(node.body)
+
+        return Function(name=name, arguments=args, return_type=return_type, body=body)
+
+    def walk_Type(self, node: Node) -> ASTNode:
+        return Type(
+            Identifier(node.type),
+            self.walk(node.units) if node.units else None
+        )
